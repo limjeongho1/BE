@@ -1,0 +1,47 @@
+
+import pandas as pd
+import numpy as np
+import ast
+import re
+from sentence_transformers import SentenceTransformer
+
+
+def normalize_text(text: str) -> str:
+    text = str(text)
+    text = re.sub(r"[,\u00b7・]", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+# --- 임베딩 로드 ---
+df = pd.read_csv("test_language.csv")
+
+corpus_embeddings = np.vstack(
+    df["embedding"].apply(lambda x: np.array(ast.literal_eval(x)))
+)
+
+# --- 모델 로드 ---
+model = SentenceTransformer("intfloat/multilingual-e5-base")
+
+# --- 질문 (문장 조금 바꿔도 OK) ---
+raw_query = """
+
+"""
+
+query = "query: " + normalize_text(raw_query)
+
+query_embedding = model.encode(
+    query,
+    convert_to_numpy=True,
+    normalize_embeddings=True
+)
+
+# --- 유사도 계산 ---
+scores = np.dot(corpus_embeddings, query_embedding)
+
+best_index = int(np.argmax(scores))
+best_score = float(scores[best_index])
+
+print("🎯 검색 결과")
+print(f"➡️ 가장 유사한 행 번호: {best_index}")
+print(f"➡️ 유사도 점수: {best_score:.4f}")
